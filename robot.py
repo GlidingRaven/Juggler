@@ -3,6 +3,9 @@ import random, numpy, math, time
 import pybullet_data
 import matplotlib.pyplot as plt
 import numpy as np
+from statistics import harmonic_mean
+from scipy.optimize import minimize
+# from sklearn import model_selection#, datasets, linear_model, metrics
 # from matplotlib import animation
 # from IPython.display import display, HTML
 # import tensorflow as tf
@@ -15,7 +18,6 @@ fpss = 0.0041
 secs = 2.2
 fps = 240
 stop_step = int(240*secs)
-maxforce = 100
 PLATFORM_ELEVATION = 0.2
 WANTED_HEIGHT = 0.3
 
@@ -34,7 +36,7 @@ class Enviroment:
 
         if GUI_enable:
             p.resetDebugVisualizerCamera(1, 52, -32, (-0.26, 0.22, -0.24))
-            self.fps = p.addUserDebugParameter("fps", 1, 800, 1)
+            self.fps = p.addUserDebugParameter("fps", 1, 800, 24)
         else:
             self.fpss = fpss
 
@@ -46,6 +48,8 @@ class Enviroment:
 
 
     def start(self, ball_loc, ball_vel, action_params, debug=False):
+        # print()
+        # print(ball_loc, ball_vel, action_params)
         self.debug = debug
         self.steps = 0
         self.rebounds = 0
@@ -101,6 +105,7 @@ class Enviroment:
             self.contact_loc = self.getCords(self.ballId)[:2]
             x, y = self.contact_loc
             A = ((abs(x) * abs(y) * 1 / 0.15) - (abs(x) + abs(y)) + 0.15) * (1 / 0.15)
+            # print('\nA = {}      x,y={} {}'.format(A, x, y))
             self.A = 0 if A < 0 else A
             if self.debug:
                 print('\nA = {}      x,y={} {}'.format(self.A, x, y))
@@ -125,7 +130,8 @@ class Enviroment:
         self.next_state_vel = self.getVel(self.ballId)[:2]
 
     def final(self):
-        self.reward = self.A * 0.33 + self.B * 0.33 + self.C * 0.34
+        self.reward = harmonic_mean([self.A, self.B])*0.66 + self.C * 0.34
+        print('\nreward={} because A={} B={} C={}'.format(self.reward, self.A, self.B, self.C))
         if self.debug:
             print('\nreward={} because A={} B={} C={}'.format(self.reward,self.A,self.B,self.C))
         if self.bad_final:
@@ -214,10 +220,10 @@ class Enviroment:
         self.start(ball_loc=ball_loc, ball_vel=ball_vel, action_params=action_params, debug=debug)
         while True:
             if self.stop == True:
-                rew = self.reward
+                reward = self.reward
                 next_state = self.next_state_cords, self.next_state_vel
                 self.purge()
-                return rew, next_state
+                return reward, next_state, (self.A, self.B, self.C)
             env.step()
             time.sleep(self.fpss)
 
@@ -277,16 +283,44 @@ class Stats():
     def addMarker(self, mark):
         self.markers.append(mark)
 
+normalize = lambda n, min, max: (n-min)/(max-min)
+denormalize = lambda norm, min, max: norm*(max-min)+min
 
 stats = Stats()
-env = Enviroment(fpss=0, GUI_enable=False)
+flag = True
+env = Enviroment(fpss=0, GUI_enable=flag)
 
-x = random.uniform(-maxforce,maxforce)
-y = random.uniform(-maxforce,maxforce)
+
 arr=[]
-for _ in range(1000):
-    answ = env.make_simulation((0, 0, 0.3), (x, y), action_params=[(0, 0), 0.9, 20], debug=False)
-    arr.append('{}'.format(answ))
+# for _ in range(1):
+#     maxforce = 100
+#     x_vel = random.uniform(-maxforce, maxforce)
+#     y_vel = random.uniform(-maxforce, maxforce)
+#     z = random.uniform(0.2, 0.4)
+#     z = 0.3
+#     answ = env.make_simulation((0, 0, z), (140, 140), action_params=[(0, 0), 0.9, 20], debug=False)
+#     arr.append('{}'.format(answ))
 
-for i in arr:
-    print(i)
+def my(x, *args):
+    alpha, beta, vel, delay = x
+    alpha, beta, vel, delay = denormalize(alpha, -30, 30), denormalize(beta, -30, 30), denormalize(vel, 0.5, 2), denormalize(delay, 0, 300)
+    print(alpha, beta, vel, delay, args)
+    cords, ball_vel = args
+    answ = env.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
+    print(answ[0])
+    return -answ[0]
+
+# parameters_grid = {
+#     'alpha' : np.linspace(-20, 20, num = 40),
+#     'beta' : np.linspace(-20, 20, num = 40),
+#     'vel' : np.linspace(0.1, 1.5, num = 15),
+#     'delay' : np.linspace(10, 100, num = 10),
+# }
+#
+# randomized_grid_cv = model_selection.RandomizedSearchCV(classifier, parameters_grid, scoring = 'accuracy', cv = cv, n_iter = 20, random_state = 0)
+#7 -7 0.9 20
+print( my( [0.65, 0.35, 0.26666, 0.066666], (0,0,0.3),(140,140) )       )
+# print(minimize(my, [7,-7,0.9,20], args=((0,0,0.3),(140,140)), method = 'Nelder-Mead', options = {'maxiter': 10000}))
+
+# for i in arr:
+#     print(i)
