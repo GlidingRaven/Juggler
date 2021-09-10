@@ -4,7 +4,7 @@ import pybullet_data
 import matplotlib.pyplot as plt
 import numpy as np
 from statistics import harmonic_mean
-from scipy.optimize import minimize
+from scipy.optimize import minimize, brute
 # from sklearn import model_selection#, datasets, linear_model, metrics
 # from matplotlib import animation
 # from IPython.display import display, HTML
@@ -18,7 +18,7 @@ fpss = 0.0041
 secs = 2.2
 fps = 240
 stop_step = int(240*secs)
-PLATFORM_ELEVATION = 0.2
+PLATFORM_ELEVATION = 0.05
 WANTED_HEIGHT = 0.3
 
 class Enviroment:
@@ -102,6 +102,9 @@ class Enviroment:
             if self.debug:
                 print('\nC = {}      because elevation = {}'.format(self.C, platZ))
         elif self.hit_counter == 1:
+            z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
+            if z_vel_platform < 0 and abs(z_vel_platform) > 0.1:
+                self.bad_final = True
             self.contact_loc = self.getCords(self.ballId)[:2]
             x, y = self.contact_loc
             A = ((abs(x) * abs(y) * 1 / 0.15) - (abs(x) + abs(y)) + 0.15) * (1 / 0.15)
@@ -131,11 +134,10 @@ class Enviroment:
 
     def final(self):
         self.reward = harmonic_mean([self.A, self.B])*0.66 + self.C * 0.34
-        print('\nreward={} because A={} B={} C={}'.format(self.reward, self.A, self.B, self.C))
-        if self.debug:
-            print('\nreward={} because A={} B={} C={}'.format(self.reward,self.A,self.B,self.C))
         if self.bad_final:
             self.reward = 0
+        if self.reward > 0 or self.debug:
+            print('\nreward={} because A={} B={} C={}'.format(self.reward, self.A, self.B, self.C))
         self.stop = True
 
     def pushBall(self, ball_vel):
@@ -289,8 +291,6 @@ denormalize = lambda norm, min, max: norm*(max-min)+min
 stats = Stats()
 flag = True
 env = Enviroment(fpss=0, GUI_enable=flag)
-
-
 arr=[]
 # for _ in range(1):
 #     maxforce = 100
@@ -303,24 +303,22 @@ arr=[]
 
 def my(x, *args):
     alpha, beta, vel, delay = x
-    alpha, beta, vel, delay = denormalize(alpha, -30, 30), denormalize(beta, -30, 30), denormalize(vel, 0.5, 2), denormalize(delay, 0, 300)
+    # alpha, beta, vel, delay = denormalize(alpha, -30, 30), denormalize(beta, -30, 30), denormalize(vel, 0.5, 2), int(denormalize(delay, 0, 300))
     print(alpha, beta, vel, delay, args)
     cords, ball_vel = args
     answ = env.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
     print(answ[0])
     return -answ[0]
 
-# parameters_grid = {
-#     'alpha' : np.linspace(-20, 20, num = 40),
-#     'beta' : np.linspace(-20, 20, num = 40),
-#     'vel' : np.linspace(0.1, 1.5, num = 15),
-#     'delay' : np.linspace(10, 100, num = 10),
-# }
-#
-# randomized_grid_cv = model_selection.RandomizedSearchCV(classifier, parameters_grid, scoring = 'accuracy', cv = cv, n_iter = 20, random_state = 0)
-#7 -7 0.9 20
-print( my( [0.65, 0.35, 0.26666, 0.066666], (0,0,0.3),(140,140) )       )
-# print(minimize(my, [7,-7,0.9,20], args=((0,0,0.3),(140,140)), method = 'Nelder-Mead', options = {'maxiter': 10000}))
 
-# for i in arr:
-#     print(i)
+ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
+
+print( my( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
+# res = brute(my, ranges, args=((0,0,0.3),(140,140)) )
+# res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
+print(res)
+
+
+# 0.969068775       [ 9.96545104 -9.83812299  0.51233811 35.45315182]
+# 0.96908
+# 0.98335440        [ 9.07459748 -8.97687977  0.5771259  38.14633508]
