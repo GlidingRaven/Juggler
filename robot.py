@@ -97,10 +97,13 @@ class Enviroment:
         if self.hit_counter == 0:
             platZ = p.getLinkState(self.cubeId, 2)[0][2]
             half = PLATFORM_ELEVATION / 2
-            C = -abs(platZ - half) * (1 / half) + 1
+            C = -abs(platZ - half) * (1 / half) + 1.001
             self.C = 0 if C < 0 else C
             if self.debug:
                 print('\nC = {}      because elevation = {}'.format(self.C, platZ))
+            if self.action_params[2] == 9999: # "check mode" in documentation
+                self.A, self.B, self.C = 2, 2, 2
+                self.final()
         elif self.hit_counter == 1:
             z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
             if z_vel_platform < 0 and abs(z_vel_platform) > 0.1:
@@ -136,8 +139,8 @@ class Enviroment:
         self.reward = harmonic_mean([self.A, self.B])*0.66 + self.C * 0.34
         if self.bad_final:
             self.reward = 0
-        if self.reward > 0 or self.debug:
-            print('\nreward={} because A={} B={} C={}'.format(self.reward, self.A, self.B, self.C))
+        # if self.reward > 0 or self.debug:
+        #     print('\nreward={} because A={} B={} C={}'.format(self.reward, self.A, self.B, self.C))
         self.stop = True
 
     def pushBall(self, ball_vel):
@@ -301,24 +304,32 @@ arr=[]
 #     answ = env.make_simulation((0, 0, z), (140, 140), action_params=[(0, 0), 0.9, 20], debug=False)
 #     arr.append('{}'.format(answ))
 
+# general function for fast search
 def my(x, *args):
     alpha, beta, vel, delay = x
-    # alpha, beta, vel, delay = denormalize(alpha, -30, 30), denormalize(beta, -30, 30), denormalize(vel, 0.5, 2), int(denormalize(delay, 0, 300))
-    print(alpha, beta, vel, delay, args)
+    # print(alpha, beta, vel, delay, args)
     cords, ball_vel = args
     answ = env.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
-    print(answ[0])
+    print(answ)
     return -answ[0]
 
 
 ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
 
-print( my( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
+# checks if the ball can touch the platform
+def check_reachability(cords, ball_vel):
+    # 9999 is magic number for "check mode"
+    res = env.make_simulation(cords, ball_vel, action_params=[(0, 0), 0.7, 9999], debug=False)
+    if res[0] == 2: return True
+    else: return False
+
+for i in np.linspace(0, 0.2, 9):
+    print(i)
+    print(check_reachability( (i, 0, 0.3), (0,0)  ) )
+
 # res = brute(my, ranges, args=((0,0,0.3),(140,140)) )
 # res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
-print(res)
 
 
-# 0.969068775       [ 9.96545104 -9.83812299  0.51233811 35.45315182]
-# 0.96908
-# 0.98335440        [ 9.07459748 -8.97687977  0.5771259  38.14633508]
+
+# print( my( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
