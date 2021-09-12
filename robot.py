@@ -66,6 +66,7 @@ class Enviroment:
         self.reward = 0
         self.bad_final = False
         self.action_params = action_params
+        self.continuous_contact = 0
 
         self.cubeId = p.loadURDF("mycube.urdf", [0, 0, 0], globalScaling=1, useFixedBase=True, flags=p.URDF_INITIALIZE_SAT_FEATURES)
         self.makeBall(ball_loc)
@@ -90,6 +91,7 @@ class Enviroment:
 
     # run when hit detected
     def on_hit(self):
+        # print('===== HIT FUN', self.contact_loc, )
         if self.debug:
             self.contact_loc = self.getCords(self.ballId)[:2]
             print('===== HIT FUN', self.contact_loc, )
@@ -104,6 +106,10 @@ class Enviroment:
                 print('\nC = {}      because elevation = {}'.format(self.C, platZ))
             if self.action_params[2] == 9999: # "check mode" in documentation
                 self.A, self.B, self.C = 2, 2, 2
+                self.final()
+            z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
+            if z_vel_platform < 0 and abs(z_vel_platform) > 0.1:
+                self.bad_final = True
                 self.final()
         elif self.hit_counter == 1:
             z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
@@ -186,6 +192,16 @@ class Enviroment:
 
         if not self.ball_moving:
             pass
+
+
+        if len(p.getContactPoints()) > 0:
+            if self.continuous_contact > 6:
+                self.on_hit()
+                self.continuous_contact = 0
+            else:
+                self.continuous_contact += 1
+        else:
+            self.continuous_contact = 0
 
     def action(self):
         # X, Y, Z = self.getCords(self.ballId)
@@ -293,7 +309,7 @@ normalize = lambda n, min, max: (n-min)/(max-min)
 denormalize = lambda norm, min, max: norm*(max-min)+min
 
 stats = Stats()
-flag = False
+flag = False#True
 env = Enviroment(fpss=0, GUI_enable=flag)
 arr=[]
 
@@ -303,16 +319,10 @@ def my(x, *args):
     # print(alpha, beta, vel, delay, args)
     cords, ball_vel = args
     answ = env.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
-    print(answ)
+    # print(answ)
     return -answ[0]
 
-
-ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
-
-
-
 # # # generate valid cases and safe them in csv
-pairs = [(10, 10), (50, 10), (100, 5), (400, 10)]  # (sigma for velosity distribution, count of samples)
 def generate_cases(pairs):
     gen_rand = lambda min, max: round(random.uniform(min, max), 3)
     arr = []
@@ -328,7 +338,7 @@ def generate_cases(pairs):
 
     def gen_rand_vel(sigma, limit=600, loc=0):
         while True:
-            num = np.random.normal(loc, sigma)
+            num = round( np.random.normal(loc, sigma), 3 )
             if abs(num) <= limit:
                 return num
 
@@ -345,19 +355,42 @@ def generate_cases(pairs):
 
             if check_reachability(cords, ball_vel):
                 count += 1
-                arr.append([cords, ball_vel])
-                print(arr[-1])
+                arr.append([*cords, *ball_vel])
+                # print(arr[-1])
+            # print(check_reachability( (0, 0, 0.3), (10, 10)  ) )
 
-        print(len(arr))
+        print(len(arr), ' cases was made')
 
-    df = pd.DataFrame(arr, columns=["cords", "velocity"])
-    df.to_csv('data/01_checked_dots.csv')
+    df = pd.DataFrame(arr, columns=['x', 'y', 'z', 'x_vel', 'y_vel'])
+    df.to_csv('data/01_checked_dots.csv', index=False)
 
-generate_cases(pairs)
+# pairs = [(10, 10000), (50, 10000), (100, 5000), (400, 1000)]  # (sigma for velosity distribution, count of samples)
+# generate_cases(pairs) # ~ about 3 minutes
 
-# print(check_reachability( (0, 0, 0.3), (10, 10)  ) )
+data = pd.read_csv('data/01_checked_dots.csv')
+# print(data.shape)
+### alpha, beta, vel, delay
+ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
+
+for i in range(10, len(data) ): #len(data)
+    case = data.iloc[i].values
+    x, y, z, x_vel, y_vel = case[0], case[1], case[2], case[3], case[4]
+    # print(x,y,z, x_vel, y_vel)
+    res = brute( my, ranges, args=( (x,y,z), (x_vel, y_vel) )  )
+    score = -my(res, (x,y,z), (x_vel, y_vel))
+    data.at[i, 'alpha'] = res[0]
+    data.at[i, 'beta'] = res[1]
+    data.at[i, 'z_vel'] = res[2]
+    data.at[i, 'delay'] = res[3]
+    data.at[i, 'score'] = score
+    data.to_csv('data/01_checked_dots.csv', index=False)
+    print(i,' done')
+
+# print ( brute( my, ranges, args=( (0.101,-0.119,0.422), (10.615, -9.148) )  ) )
+# print(    -my([-6.52365783 -5.68599129  0.40492945 46.71710743], (0.101,-0.119,0.422), (140, 140) )   )
 
 # res = brute(my, ranges, args=((0,0,0.3),(140,140)) )
+# print(    -my(res, (0, 0, 0.3), (140, 140) )   )
 # res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
 
 
