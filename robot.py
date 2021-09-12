@@ -1,8 +1,9 @@
 import pybullet as p
-import random, numpy, math, time
+import random, math, time
 import pybullet_data
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from statistics import harmonic_mean
 from scipy.optimize import minimize, brute
 # from sklearn import model_selection#, datasets, linear_model, metrics
@@ -36,7 +37,7 @@ class Enviroment:
 
         if GUI_enable:
             p.resetDebugVisualizerCamera(1, 52, -32, (-0.26, 0.22, -0.24))
-            self.fps = p.addUserDebugParameter("fps", 1, 800, 24)
+            self.fps = p.addUserDebugParameter("fps", 1, 800, 1)
         else:
             self.fpss = fpss
 
@@ -292,17 +293,9 @@ normalize = lambda n, min, max: (n-min)/(max-min)
 denormalize = lambda norm, min, max: norm*(max-min)+min
 
 stats = Stats()
-flag = True
+flag = False
 env = Enviroment(fpss=0, GUI_enable=flag)
 arr=[]
-# for _ in range(1):
-#     maxforce = 100
-#     x_vel = random.uniform(-maxforce, maxforce)
-#     y_vel = random.uniform(-maxforce, maxforce)
-#     z = random.uniform(0.2, 0.4)
-#     z = 0.3
-#     answ = env.make_simulation((0, 0, z), (140, 140), action_params=[(0, 0), 0.9, 20], debug=False)
-#     arr.append('{}'.format(answ))
 
 # general function for fast search
 def my(x, *args):
@@ -316,16 +309,53 @@ def my(x, *args):
 
 ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
 
-# checks if the ball can touch the platform
-def check_reachability(cords, ball_vel):
-    # 9999 is magic number for "check mode"
-    res = env.make_simulation(cords, ball_vel, action_params=[(0, 0), 0.7, 9999], debug=False)
-    if res[0] == 2: return True
-    else: return False
 
-for i in np.linspace(0, 0.2, 9):
-    print(i)
-    print(check_reachability( (i, 0, 0.3), (0,0)  ) )
+
+# # # generate valid cases and safe them in csv
+pairs = [(10, 10), (50, 10), (100, 5), (400, 10)]  # (sigma for velosity distribution, count of samples)
+def generate_cases(pairs):
+    gen_rand = lambda min, max: round(random.uniform(min, max), 3)
+    arr = []
+
+    # checks if the ball can touch the platform
+    def check_reachability(cords, ball_vel):
+        # 9999 is magic number for "check mode"
+        res = env.make_simulation(cords, ball_vel, action_params=[(0, 0), 0.7, 9999], debug=False)
+        if res[0] == 2:
+            return True
+        else:
+            return False
+
+    def gen_rand_vel(sigma, limit=600, loc=0):
+        while True:
+            num = np.random.normal(loc, sigma)
+            if abs(num) <= limit:
+                return num
+
+    for pair in pairs:
+        sigma, target_count = pair
+        count = 0
+
+        while count < target_count:
+            x = gen_rand(-0.15, 0.15)
+            y = gen_rand(-0.15, 0.15)
+            z = gen_rand(0.08, 0.8)
+            cords = (x, y, z)
+            ball_vel = (gen_rand_vel(sigma), gen_rand_vel(sigma))
+
+            if check_reachability(cords, ball_vel):
+                count += 1
+                arr.append([cords, ball_vel])
+                print(arr[-1])
+
+        print(len(arr))
+
+    df = pd.DataFrame(arr, columns=["cords", "velocity"])
+    df.to_csv('data/01_checked_dots.csv')
+
+generate_cases(pairs)
+
+# print(check_reachability( (0, 0, 0.3), (10, 10)  ) )
 
 # res = brute(my, ranges, args=((0,0,0.3),(140,140)) )
 # res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
