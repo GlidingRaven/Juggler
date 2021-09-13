@@ -372,7 +372,7 @@ data = pd.read_csv('data/01_checked_dots.csv')
 ### alpha, beta, vel, delay
 ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
 
-for i in range(10, len(data) ): #len(data)
+for i in range(1266, len(data) ): #len(data)
     case = data.iloc[i].values
     x, y, z, x_vel, y_vel = case[0], case[1], case[2], case[3], case[4]
     # print(x,y,z, x_vel, y_vel)
@@ -386,13 +386,18 @@ for i in range(10, len(data) ): #len(data)
     data.to_csv('data/01_checked_dots.csv', index=False)
     print(i,' done')
 
-# print ( brute( my, ranges, args=( (0.101,-0.119,0.422), (10.615, -9.148) )  ) )
-# print(    -my([-6.52365783 -5.68599129  0.40492945 46.71710743], (0.101,-0.119,0.422), (140, 140) )   )
+# 8 sec. is ok, 10-18 sec - google colab (why?)
+def time_test():
+    import time
+    t0 = time.time()
+    print('Time test start')
+    ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
+    res = brute(my, ranges, args=((0, 0, 0.3), (140, 140)))
+    check_solution = -my(res, (0, 0, 0.3), (140, 140))
+    t1 = time.time()
+    print('Time test done in {} sec, checksum 0.90358 = {}'.format( round(t1 - t0, 3), round(check_solution, 5) ))
 
-# res = brute(my, ranges, args=((0,0,0.3),(140,140)) )
-# print(    -my(res, (0, 0, 0.3), (140, 140) )   )
+
+
 # res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
-
-
-
 # print( my( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
