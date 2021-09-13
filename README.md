@@ -24,3 +24,6 @@ After execution the program returns a score from 0 to 1 based on the three grade
 
 ## Requirements
 Python IDE, Pybullet and a few more libraries
+
+
+[Technical details](https://docs.google.com/document/d/1umx8ZsqzESH3lx-r5ZVmqLn8rJtWfMUKcmMkzg1vBDY/edit?usp=sharing)
