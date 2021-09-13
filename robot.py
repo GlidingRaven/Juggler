@@ -6,14 +6,6 @@ import numpy as np
 import pandas as pd
 from statistics import harmonic_mean
 from scipy.optimize import minimize, brute
-# from sklearn import model_selection#, datasets, linear_model, metrics
-# from matplotlib import animation
-# from IPython.display import display, HTML
-# import tensorflow as tf
-# from keras.models import Sequential
-# from keras.layers import Dense
-# from keras.layers import LSTM
-# from keras.optimizers import RMSprop
 
 fpss = 0.0041
 secs = 2.2
@@ -21,6 +13,9 @@ fps = 240
 stop_step = int(240*secs)
 PLATFORM_ELEVATION = 0.05
 WANTED_HEIGHT = 0.3
+PATH_TO_MODELS = 'model/'
+PATH_TO_DATA = 'data/'
+
 
 class Enviroment:
     def __init__(self, fpss, GUI_enable=True):
@@ -30,9 +25,9 @@ class Enviroment:
         else:
             p.connect(p.DIRECT)
 
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        # p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.8)
-        # p.setTimeStep(1 / 240/4)
+        # p.setTimeStep(1 /240/4)
         p.setPhysicsEngineParameter(enableSAT=1)
 
         if GUI_enable:
@@ -68,7 +63,7 @@ class Enviroment:
         self.action_params = action_params
         self.continuous_contact = 0
 
-        self.cubeId = p.loadURDF("mycube.urdf", [0, 0, 0], globalScaling=1, useFixedBase=True, flags=p.URDF_INITIALIZE_SAT_FEATURES)
+        self.cubeId = p.loadURDF(PATH_TO_MODELS+"mycube.urdf", [0, 0, 0], globalScaling=1, useFixedBase=True, flags=p.URDF_INITIALIZE_SAT_FEATURES)
         self.makeBall(ball_loc)
         self.pushBall(ball_vel)
 
@@ -76,7 +71,7 @@ class Enviroment:
         self.timer.add_job(self.steps + 1, self.action)
 
     def makeBall(self, ball_loc):
-        self.ballId = p.loadURDF("myball.urdf", [ball_loc[0], ball_loc[1], ball_loc[2]], globalScaling=1, flags=p.URDF_INITIALIZE_SAT_FEATURES)
+        self.ballId = p.loadURDF(PATH_TO_MODELS+"myball.urdf", [ball_loc[0], ball_loc[1], ball_loc[2]], globalScaling=1, flags=p.URDF_INITIALIZE_SAT_FEATURES)
         p.changeDynamics(self.ballId, -1, mass=1, restitution=0.8)
 
     def getCords(selfs, id):
@@ -241,7 +236,7 @@ class Enviroment:
     def make_simulation(self, ball_loc, ball_vel, action_params, debug):
         self.start(ball_loc=ball_loc, ball_vel=ball_vel, action_params=action_params, debug=debug)
         while True:
-            if self.stop == True:
+            if self.stop:
                 reward = self.reward
                 next_state = self.next_state_cords, self.next_state_vel
                 self.purge()
@@ -305,15 +300,12 @@ class Stats():
     def addMarker(self, mark):
         self.markers.append(mark)
 
-normalize = lambda n, min, max: (n-min)/(max-min)
-denormalize = lambda norm, min, max: norm*(max-min)+min
-
+######################################################################
 stats = Stats()
 flag = False#True
 env = Enviroment(fpss=0, GUI_enable=flag)
-arr=[]
 
-# general function for fast search
+### general function for fast search
 def my(x, *args):
     alpha, beta, vel, delay = x
     # print(alpha, beta, vel, delay, args)
@@ -322,7 +314,7 @@ def my(x, *args):
     # print(answ)
     return -answ[0]
 
-# # # generate valid cases and safe them in csv
+### generate valid cases and safe them in csv
 def generate_cases(pairs):
     gen_rand = lambda min, max: round(random.uniform(min, max), 3)
     arr = []
@@ -362,31 +354,34 @@ def generate_cases(pairs):
         print(len(arr), ' cases was made')
 
     df = pd.DataFrame(arr, columns=['x', 'y', 'z', 'x_vel', 'y_vel'])
-    df.to_csv('data/01_checked_dots.csv', index=False)
+    df.to_csv(PATH_TO_DATA+'01_checked_dots.csv', index=False)
 
 # pairs = [(10, 10000), (50, 10000), (100, 5000), (400, 1000)]  # (sigma for velosity distribution, count of samples)
 # generate_cases(pairs) # ~ about 3 minutes
 
-data = pd.read_csv('data/01_checked_dots.csv')
+data = pd.read_csv(PATH_TO_DATA+'01_checked_dots.csv')
 # print(data.shape)
 ### alpha, beta, vel, delay
 ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
 
-for i in range(1266, len(data) ): #len(data)
-    case = data.iloc[i].values
-    x, y, z, x_vel, y_vel = case[0], case[1], case[2], case[3], case[4]
-    # print(x,y,z, x_vel, y_vel)
-    res = brute( my, ranges, args=( (x,y,z), (x_vel, y_vel) )  )
-    score = -my(res, (x,y,z), (x_vel, y_vel))
-    data.at[i, 'alpha'] = res[0]
-    data.at[i, 'beta'] = res[1]
-    data.at[i, 'z_vel'] = res[2]
-    data.at[i, 'delay'] = res[3]
-    data.at[i, 'score'] = score
-    data.to_csv('data/01_checked_dots.csv', index=False)
-    print(i,' done')
+def search_for_sol(start):
+    for i in range(start, len(data)):  # len(data)
+        case = data.iloc[i].values
+        x, y, z, x_vel, y_vel = case[0], case[1], case[2], case[3], case[4]
+        # print(x,y,z, x_vel, y_vel)
+        res = brute(my, ranges, args=((x, y, z), (x_vel, y_vel)))
+        score = -my(res, (x, y, z), (x_vel, y_vel))
+        data.at[i, 'alpha'] = res[0]
+        data.at[i, 'beta'] = res[1]
+        data.at[i, 'z_vel'] = res[2]
+        data.at[i, 'delay'] = res[3]
+        data.at[i, 'score'] = score
+        data.to_csv(PATH_TO_DATA + '01_checked_dots.csv', index=False)
+        print(i, ' done')
 
-# 8 sec. is ok, 10-18 sec - google colab (why?)
+search_solutions_and_safe(5000)
+
+# 9 sec. is ok, 10-18 sec - google colab (why?), 8 sec - Kaggle Core
 def time_test():
     import time
     t0 = time.time()
