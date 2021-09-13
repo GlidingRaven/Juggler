@@ -233,6 +233,10 @@ class Enviroment:
         if block_step > 0: # block next exe untill block_step
             self.timer.block_exe(block_step)
 
+    def purge(self):
+        p.removeBody(self.cubeId)
+        p.removeBody(self.ballId)
+
     def make_simulation(self, ball_loc, ball_vel, action_params, debug):
         self.start(ball_loc=ball_loc, ball_vel=ball_vel, action_params=action_params, debug=debug)
         while True:
@@ -244,9 +248,25 @@ class Enviroment:
             env.step()
             time.sleep(self.fpss)
 
-    def purge(self):
-        p.removeBody(self.cubeId)
-        p.removeBody(self.ballId)
+    ### same as make_simulation, but with a better interface. Return score [-1;0]
+    def get_solution_score(self, x, *args):
+        alpha, beta, vel, delay = x
+        # print(alpha, beta, vel, delay, args)
+        cords, ball_vel = args
+        answ = self.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
+        # print(answ)
+        return -answ[0]
+
+    def time_test(self):
+        t0 = time.time()
+        print('Time test started...', end='    ')
+        ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
+        res = brute(self.get_solution_score, ranges, args=((0, 0, 0.3), (140, 140)))
+        check_solution = -env.get_solution_score(res, (0, 0, 0.3), (140, 140))
+        t1 = time.time()
+        print('Time test done in {} sec, checksum 0.90358 = {}'.format(round(t1 - t0, 3), round(check_solution, 5)))
+
+
 ######################################################################
     class Cheduler():
         def __init__(self):
@@ -301,21 +321,13 @@ class Stats():
         self.markers.append(mark)
 
 ######################################################################
+
 stats = Stats()
 flag = False#True
 env = Enviroment(fpss=0, GUI_enable=flag)
 
-### general function for fast search
-def my(x, *args):
-    alpha, beta, vel, delay = x
-    # print(alpha, beta, vel, delay, args)
-    cords, ball_vel = args
-    answ = env.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
-    # print(answ)
-    return -answ[0]
-
 ### generate valid cases and safe them in csv
-def generate_cases(pairs):
+def generate_cases(pairs, file_name):
     gen_rand = lambda min, max: round(random.uniform(min, max), 3)
     arr = []
 
@@ -327,7 +339,7 @@ def generate_cases(pairs):
             return True
         else:
             return False
-
+    # generate number with sigma dispersion (normal distribution)
     def gen_rand_vel(sigma, limit=600, loc=0):
         while True:
             num = round( np.random.normal(loc, sigma), 3 )
@@ -348,51 +360,42 @@ def generate_cases(pairs):
             if check_reachability(cords, ball_vel):
                 count += 1
                 arr.append([*cords, *ball_vel])
-                # print(arr[-1])
+                print(arr[-1])
+            # print(count)
             # print(check_reachability( (0, 0, 0.3), (10, 10)  ) )
 
-        print(len(arr), ' cases was made')
-
     df = pd.DataFrame(arr, columns=['x', 'y', 'z', 'x_vel', 'y_vel'])
-    df.to_csv(PATH_TO_DATA+'01_checked_dots.csv', index=False)
+    full_path = PATH_TO_DATA + file_name
+    df.to_csv(full_path, index=False)
+    print('{} cases was made and saved to {}'.format(len(arr), full_path))
 
 # pairs = [(10, 10000), (50, 10000), (100, 5000), (400, 1000)]  # (sigma for velosity distribution, count of samples)
-# generate_cases(pairs) # ~ about 3 minutes
+# generate_cases(pairs, '01_checked_dots.csv') # ~ about 3 minutes
 
-data = pd.read_csv(PATH_TO_DATA+'01_checked_dots.csv')
-# print(data.shape)
-### alpha, beta, vel, delay
-ranges = ( slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10) )
 
-def search_for_sol(start):
+def search_for_sol(start, file_name):
+    full_path = PATH_TO_DATA + file_name
+    data = pd.read_csv(full_path)
+    ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
+
     for i in range(start, len(data)):  # len(data)
         case = data.iloc[i].values
         x, y, z, x_vel, y_vel = case[0], case[1], case[2], case[3], case[4]
         # print(x,y,z, x_vel, y_vel)
-        res = brute(my, ranges, args=((x, y, z), (x_vel, y_vel)))
-        score = -my(res, (x, y, z), (x_vel, y_vel))
+        res = brute(env.get_solution_score, ranges, args=((x, y, z), (x_vel, y_vel)))
+        score = -env.get_solution_score(res, (x, y, z), (x_vel, y_vel))
         data.at[i, 'alpha'] = res[0]
         data.at[i, 'beta'] = res[1]
         data.at[i, 'z_vel'] = res[2]
         data.at[i, 'delay'] = res[3]
         data.at[i, 'score'] = score
-        data.to_csv(PATH_TO_DATA + '01_checked_dots.csv', index=False)
+        data.to_csv(full_path, index=False)
         print(i, ' done')
 
-search_solutions_and_safe(5000)
-
-# 9 sec. is ok, 10-18 sec - google colab (why?), 8 sec - Kaggle Core
-def time_test():
-    import time
-    t0 = time.time()
-    print('Time test start')
-    ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
-    res = brute(my, ranges, args=((0, 0, 0.3), (140, 140)))
-    check_solution = -my(res, (0, 0, 0.3), (140, 140))
-    t1 = time.time()
-    print('Time test done in {} sec, checksum 0.90358 = {}'.format( round(t1 - t0, 3), round(check_solution, 5) ))
+# search_for_sol(5000, '01_checked_dots.csv')
 
 
 
-# res = minimize(my, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
-# print( my( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
+# env.time_test() ### 9 sec. is ok, 10-18 sec - google colab (why?), 8 sec - Kaggle Core
+# res = minimize(env.get_solution_score, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
+# print( env.get_solution_score( [9.07459748, -8.97687977,  0.577125,  38.14633508], (0,0,0.3),(140,140) )       )
