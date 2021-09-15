@@ -260,6 +260,7 @@ class Enviroment:
     def time_test(self):
         t0 = time.time()
         print('Time test started...', end='    ')
+        ### alpha, beta, vel, delay
         ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
         res = brute(self.get_solution_score, ranges, args=((0, 0, 0.3), (140, 140)))
         check_solution = -env.get_solution_score(res, (0, 0, 0.3), (140, 140))
@@ -393,8 +394,16 @@ def search_for_sol(start, file_name):
         print(i, ' done')
 
 # search_for_sol(5000, '01_checked_dots.csv')
+def final_check(file_name):
+    full_path = PATH_TO_DATA + file_name
+    data = pd.read_csv(full_path)
 
+    for i in range(len(data)):
+        case = data.iloc[i]
+        x, y, z, x_vel, y_vel, alpha, beta, z_vel, delay, score = case.x, case.y, case.z, case.x_vel, case.y_vel, case.alpha, case.beta, case.z_vel, case.delay, case.score
+        print(-round(env.get_solution_score((alpha, beta, z_vel, delay), (x, y, z), (x_vel, y_vel)), 3))
 
+final_check('03_for_train.csv')
 
 # env.time_test() ### 9 sec. is ok, 10-18 sec - google colab (why?), 8 sec - Kaggle Core
 # res = minimize(env.get_solution_score, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
