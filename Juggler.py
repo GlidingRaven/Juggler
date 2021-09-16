@@ -25,9 +25,7 @@ class Enviroment:
         else:
             p.connect(p.DIRECT)
 
-        # p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.8)
-        # p.setTimeStep(1 /240/4)
         p.setPhysicsEngineParameter(enableSAT=1)
 
         if GUI_enable:
@@ -44,7 +42,6 @@ class Enviroment:
 
 
     def start(self, ball_loc, ball_vel, action_params, debug=False):
-        # print()
         # print(ball_loc, ball_vel, action_params)
         self.debug = debug
         self.steps = 0
@@ -80,9 +77,9 @@ class Enviroment:
     def getVel(selfs, id):
         return p.getBaseVelocity(id)[0]
 
-    # def reaction(self, x, y, x_vel, y_vel, pro, der):
-    #     if (self.steps % 1 == 0):
-    #         self.move(y*pro+y_vel*der, -(x*pro+x_vel*der))
+    def reaction(self, x, y, mul, every):
+        if (self.steps % every == 0):
+            self.move(y*mul, -(x*mul))
 
     # run when hit detected
     def on_hit(self):
@@ -90,7 +87,6 @@ class Enviroment:
         if self.debug:
             self.contact_loc = self.getCords(self.ballId)[:2]
             print('===== HIT FUN', self.contact_loc, )
-        # stats.addMarker(self.steps)
 
         if self.hit_counter == 0:
             platZ = p.getLinkState(self.cubeId, 2)[0][2]
@@ -104,8 +100,9 @@ class Enviroment:
                 self.final()
             z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
             if z_vel_platform < 0 and abs(z_vel_platform) > 0.1:
-                self.bad_final = True
-                self.final()
+                print('gagaga    ', z_vel_platform)
+                # self.bad_final = True
+                # self.final()
         elif self.hit_counter == 1:
             z_vel_platform = p.getLinkState(self.cubeId, 2, 1)[6][2]
             if z_vel_platform < 0 and abs(z_vel_platform) > 0.1:
@@ -238,6 +235,7 @@ class Enviroment:
         p.removeBody(self.ballId)
 
     def make_simulation(self, ball_loc, ball_vel, action_params, debug):
+        print('Sim, xyz:', ball_loc, ' vel:', ball_vel, 'action:', action_params)
         self.start(ball_loc=ball_loc, ball_vel=ball_vel, action_params=action_params, debug=debug)
         while True:
             if self.stop:
@@ -245,8 +243,9 @@ class Enviroment:
                 next_state = self.next_state_cords, self.next_state_vel
                 self.purge()
                 return reward, next_state, (self.A, self.B, self.C)
-            env.step()
-            time.sleep(self.fpss)
+            self.step()
+            time.sleep(0.0041)
+            # time.sleep(self.fpss)
 
     ### same as make_simulation, but with a better interface. Return score [-1;0]
     def get_solution_score(self, x, *args):
@@ -263,12 +262,30 @@ class Enviroment:
         ### alpha, beta, vel, delay
         ranges = (slice(-15, 15, 5), slice(-15, 15, 5), slice(0.5, 1.5, 0.2), slice(10, 50, 10))
         res = brute(self.get_solution_score, ranges, args=((0, 0, 0.3), (140, 140)))
-        check_solution = -env.get_solution_score(res, (0, 0, 0.3), (140, 140))
+        check_solution = -self.get_solution_score(res, (0, 0, 0.3), (140, 140))
         t1 = time.time()
         print('Time test done in {} sec, checksum 0.90358 = {}'.format(round(t1 - t0, 3), round(check_solution, 5)))
 
+    def game(self, predictor):
+        gen_rand = lambda min, max: round(random.uniform(min, max), 3)
+        # generate number with sigma dispersion (normal distribution)
+        def gen_rand_vel(sigma, limit=600, loc=0):
+            while True:
+                num = round(np.random.normal(loc, sigma), 3)
+                if abs(num) <= limit:
+                    return num
+        x = gen_rand(-0.15, 0.15)
+        y = gen_rand(-0.15, 0.15)
+        z = gen_rand(0.08, 0.8)
+        cords = (x, y, z)
+        sigma = 50
+        ball_vel = (gen_rand_vel(sigma), gen_rand_vel(sigma))
+        alpha, beta, vel, delay = predictor.predict([x, y, z, ball_vel[0], ball_vel[1]])
+        print('Predicted: ',alpha, beta, vel, delay)
 
-######################################################################
+        self.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
+
+
     class Cheduler():
         def __init__(self):
             self.jobs = []
@@ -323,11 +340,8 @@ class Stats():
 
 ######################################################################
 
-stats = Stats()
-flag = False#True
-env = Enviroment(fpss=0, GUI_enable=flag)
 
-### generate valid cases and safe them in csv
+### Generate cases, check that the ball can reach the platform and safe in csv
 def generate_cases(pairs, file_name):
     gen_rand = lambda min, max: round(random.uniform(min, max), 3)
     arr = []
@@ -369,7 +383,6 @@ def generate_cases(pairs, file_name):
     full_path = PATH_TO_DATA + file_name
     df.to_csv(full_path, index=False)
     print('{} cases was made and saved to {}'.format(len(arr), full_path))
-
 # pairs = [(10, 10000), (50, 10000), (100, 5000), (400, 1000)]  # (sigma for velosity distribution, count of samples)
 # generate_cases(pairs, '01_checked_dots.csv') # ~ about 3 minutes
 
@@ -392,8 +405,9 @@ def search_for_sol(start, file_name):
         data.at[i, 'score'] = score
         data.to_csv(full_path, index=False)
         print(i, ' done')
-
 # search_for_sol(5000, '01_checked_dots.csv')
+
+
 def final_check(file_name):
     full_path = PATH_TO_DATA + file_name
     data = pd.read_csv(full_path)
@@ -402,8 +416,7 @@ def final_check(file_name):
         case = data.iloc[i]
         x, y, z, x_vel, y_vel, alpha, beta, z_vel, delay, score = case.x, case.y, case.z, case.x_vel, case.y_vel, case.alpha, case.beta, case.z_vel, case.delay, case.score
         print(-round(env.get_solution_score((alpha, beta, z_vel, delay), (x, y, z), (x_vel, y_vel)), 3))
-
-final_check('03_for_train.csv')
+# final_check('data/03_for_train.csv')
 
 # env.time_test() ### 9 sec. is ok, 10-18 sec - google colab (why?), 8 sec - Kaggle Core
 # res = minimize(env.get_solution_score, [9.965, -9.838,  0.512, 35.453], args=((0,0,0.3),(140,140)), options = {'maxiter': 10000})
