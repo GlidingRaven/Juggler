@@ -81,6 +81,16 @@ class Enviroment:
         if (self.steps % every == 0):
             self.move(y*mul, -(x*mul))
 
+    def gen_rand(self, min, max):
+        return round(random.uniform(min, max), 3)
+
+    # generate number with sigma dispersion (normal distribution)
+    def gen_rand_vel(self, sigma, limit=600, loc=0):
+        while True:
+            num = round(np.random.normal(loc, sigma), 3)
+            if abs(num) <= limit:
+                return num
+
     # run when hit detected
     def on_hit(self):
         # print('===== HIT FUN', self.contact_loc, )
@@ -198,9 +208,10 @@ class Enviroment:
     def action(self):
         # X, Y, Z = self.getCords(self.ballId)
         # X_vel, Y_vel = self.getVel(self.ballId)[:2]
+        # print('bla', self.action_params)
         alpha, beta = self.action_params[0]
         vel = self.action_params[1]
-        delay = self.action_params[2]
+        delay = round(self.action_params[2])
 
         time_to_elevate = int(PLATFORM_ELEVATION / vel * fps)
         start_up_step = self.steps + delay
@@ -235,7 +246,7 @@ class Enviroment:
         p.removeBody(self.ballId)
 
     def make_simulation(self, ball_loc, ball_vel, action_params, debug):
-        print('Sim, xyz:', ball_loc, ' vel:', ball_vel, 'action:', action_params)
+        # print('Sim, xyz:', ball_loc, ' vel:', ball_vel, 'action:', action_params)
         self.start(ball_loc=ball_loc, ball_vel=ball_vel, action_params=action_params, debug=debug)
         while True:
             if self.stop:
@@ -267,19 +278,12 @@ class Enviroment:
         print('Time test done in {} sec, checksum 0.90358 = {}'.format(round(t1 - t0, 3), round(check_solution, 5)))
 
     def game(self, predictor):
-        gen_rand = lambda min, max: round(random.uniform(min, max), 3)
-        # generate number with sigma dispersion (normal distribution)
-        def gen_rand_vel(sigma, limit=600, loc=0):
-            while True:
-                num = round(np.random.normal(loc, sigma), 3)
-                if abs(num) <= limit:
-                    return num
-        x = gen_rand(-0.15, 0.15)
-        y = gen_rand(-0.15, 0.15)
-        z = gen_rand(0.08, 0.8)
+        x = self.gen_rand(-0.15, 0.15)
+        y = self.gen_rand(-0.15, 0.15)
+        z = self.gen_rand(0.08, 0.8)
         cords = (x, y, z)
         sigma = 50
-        ball_vel = (gen_rand_vel(sigma), gen_rand_vel(sigma))
+        ball_vel = (self.gen_rand_vel(sigma), self.en_rand_vel(sigma))
         alpha, beta, vel, delay = predictor.predict([x, y, z, ball_vel[0], ball_vel[1]])
         print('Predicted: ',alpha, beta, vel, delay)
 
@@ -315,6 +319,37 @@ class Enviroment:
         # def clear(self):
         #     print('============= CLEARED')
         #     self.jobs.clear()
+######################################################################
+
+class Enviroment_continuous(Enviroment):
+
+    def on_hit(self):
+        # print(self.hit_counter)
+        self.hit_counter += 1
+
+    def on_fall(self):
+        x, y, z = self.getCords(self.ballId)
+        ball_vel = self.getVel(self.ballId)
+        global predictor
+        alpha, beta, vel, delay = self.predictor.predict([x, y, z, ball_vel[0], ball_vel[1]])
+        self.action_params = [(alpha, beta), vel, delay]
+        self.action()
+        # print('bruh', self.action_params)
+
+
+    def game(self, predictor):
+        x = self.gen_rand(-0.15, 0.15)
+        y = self.gen_rand(-0.15, 0.15)
+        z = 0.1
+        cords = (x, y, z)
+        sigma = 50
+        ball_vel = (self.gen_rand_vel(sigma), self.gen_rand_vel(sigma))
+        self.predictor = predictor
+        alpha, beta, vel, delay = self.predictor.predict([x, y, z, ball_vel[0], ball_vel[1]])
+        print('Predicted: ',alpha, beta, vel, delay)
+
+        self.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
+
 
 ######################################################################
 class Stats():

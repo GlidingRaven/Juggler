@@ -7,8 +7,15 @@ from sklearn.pipeline import Pipeline
 
 PATH_TO_DATA = 'data/'
 
+class BasePredictor():
+    def __init__(self):
+        pass
+
+    def predict(self, raw_input):
+        return 0
+
 # Linear regression with PolynomialFeatures
-class Predictor():
+class Predictor(BasePredictor):
     def __init__(self, filename):
         full_path = PATH_TO_DATA + filename
         data = pd.read_csv(full_path)

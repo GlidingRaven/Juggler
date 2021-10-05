@@ -4,7 +4,7 @@ import Predictors
 
 stats = Juggler.Stats()
 flag = True
-env = Juggler.Enviroment(fpss=0, GUI_enable=flag)
+env = Juggler.Enviroment_continuous(fpss=0, GUI_enable=flag)
 oracle = Predictors.Predictor('03_for_train.csv')
 for _ in range(200):
     env.game(oracle)
