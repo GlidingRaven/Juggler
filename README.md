@@ -4,6 +4,8 @@
 
 The ball begins to fall from a given point and the robot tries to bounce it. The kicking platform can rotate on two axes and move vertically.
 This repository includes an accurate physical simulation and a complete solution based on ML approach
+
+[Video of Simulation, CV and real platform](https://www.youtube.com/watch?v=z67J0S6FeP0)
  
 [Simulation in Colab (no GUI)](https://colab.research.google.com/drive/1CBMK3y_V7m3XDEyIOxfX7YjOGRlooMEp?usp=sharing)
 
@@ -26,13 +28,13 @@ After execution the program returns a score from 0 to 1 based on the three grade
 ![A, B score](files/scoring.jpg)
 Graphs of A and B. [Read more about math behind scores...](https://rust-donkey-1a4.notion.site/Juggling-robot-RL-solution-a3202e2119df45d9ae70768b8373bae2)
 
-## Dataset making and preporation
+## Dataset making and preparation
 First, we generate random coordinates of the ball and its speed. 
 Then we check if the ball can touch the platform. If not, we discard this set, since the platform will not be able to hit it anyway. Good cases are saved in the file **01_checked_dots.csv**
 
 ![Real dataset](files/real_data.jpg)
 
-
+Later steps described in data_preparation.ipynb
 
 
 
