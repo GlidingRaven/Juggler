@@ -1,10 +1,11 @@
-import Juggler
-import Predictors
-
+from Juggler import Juggler, Predictors
 
 stats = Juggler.Stats()
-flag = True
-env = Juggler.Enviroment_continuous(fpss=0, GUI_enable=flag)
-oracle = Predictors.Predictor('03_for_train.csv')
+env = Juggler.Enviroment_continuous(fpss=0, GUI_enable=True)
+oracle = Predictors.ActionPredictor('action_model.sav')
+# oracle.fit('03_for_train.csv')
+# oracle.save('action_model.sav')
+
+# Run 200 games in GUI mode
 for _ in range(200):
     env.game(oracle)
