@@ -37,10 +37,20 @@ Then we check if the ball can touch the platform. If not, we discard this set, s
 Later steps described in data_preparation.ipynb
 
 
+## Launch
+To run the simulation, simply install the libraries from *requirements.txt* and run **main.py** in your IDE.
 
+If you want to run a real robot, first connect the two cameras and the stepper motor controller. Then run the following files sequentially:
+1. **find_color_ranges.py** For each camera, find the best values of thresholds at which the ball will be well recognized. Save the numbers
+2. **camera_configurator.py** Find the best image processing parameters for stable ball detection
+3. **make_calibration_dots.py** Move the ball to different coordinates to create a calibration file. After this step, try not to touch the cameras
+4. **make_calibration_models.py** Just run it once
+5. **robot.py** Run
 
-## Requirements
-Python IDE, Pybullet and a few more libraries
+### Debugging
+*camera_configurator.py* is a powerful tool for debugging the ball detection part
+*data_preparation.ipynb* contains details of data processing for action model training
+*calibration.ipynb* contains calibration models
 
 
 [Technical details](https://docs.google.com/document/d/1umx8ZsqzESH3lx-r5ZVmqLn8rJtWfMUKcmMkzg1vBDY/edit?usp=sharing)
