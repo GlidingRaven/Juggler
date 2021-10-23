@@ -49,7 +49,9 @@ If you want to run a real robot, first connect the two cameras and the stepper m
 
 ### Debugging
 *camera_configurator.py* is a powerful tool for debugging the ball detection part
+
 *data_preparation.ipynb* contains details of data processing for action model training
+
 *calibration.ipynb* contains calibration models
 
 

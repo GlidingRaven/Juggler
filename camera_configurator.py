@@ -7,10 +7,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from Juggler import Plotter, Configurator
+from Juggler import Plotter, Ball_detection, Configurator
 
-file_name = 'cam/3a.avi'
-color_ranges = (12,158,176),(27,255,255)
+file_name = 'other/cam/ball3_zoom.avi'
+color_ranges = (18,164,176),(26,255,255)
 
 cap = cv2.VideoCapture(file_name)
 
@@ -18,7 +18,7 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 
 app = QApplication(sys.argv)
 QApplication.setStyle(QStyleFactory.create('Plastique'))
-myGUI = Plotter.CustomMainWindow(queue_size = 800, y_limit = 150, start_offset = 75, ylabel='radius')
+myGUI = Plotter.CustomMainWindow(queue_size = 400, y_limit = 100, start_offset = 0, ylabel='radius')
 mySrc = Plotter.Communicate()
 mySrc.data_signal.connect(myGUI.addData_callbackFunc)
 
@@ -28,22 +28,18 @@ while True:
     ret, frame = cap.read()
 
     if ret:
-        blur = cv2.GaussianBlur(frame, tuple(Configurator.blur_n), 0)  # blure
-        output = blur.copy()
-        hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)  # to HSV
-        ready = cv2.inRange(hsv, color_ranges[0], color_ranges[1])  # Color filter
-        cv2.imshow('Before', ready)
-        ready = cv2.morphologyEx(ready, cv2.MORPH_OPEN, Configurator.kernel_o)  # Open filter
-        ready = cv2.morphologyEx(ready, cv2.MORPH_CLOSE, Configurator.kernel_c)  # Close filter
-        cv2.imshow('After', ready)
-
-        circles = cv2.HoughCircles(ready, cv2.HOUGH_GRADIENT, 2, **Configurator.kwargs)
+        output = frame.copy()
+        mid1 = Ball_detection.prepare_frame(frame, color_ranges)
+        circles = Ball_detection.find_circle(mid1)
 
         if circles is not None:
-            circles = np.round(circles[0, :]).astype("int")
+            # circles = np.round(circles[0, :]).astype("int")
+            circles = circles[0]
             for (x, y, r) in circles:
                 cv2.circle(output, (x, y), r, (0, 255, 0), 4)
                 cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+
+            print(circles)
 
             radius = circles[0][2] * (1 - Configurator.alpha) + radius * Configurator.alpha # exponential moving average filter
             x_cord, y_cord = circles[0][0], circles[0][1]
@@ -52,7 +48,7 @@ while True:
         else:
             output = cv2.putText(output, '.', (50, 50), font, 1, (255, 255, 255), 1)
             mySrc.data_signal.emit(0)
-        cv2.imshow('Original and result', output)
+        cv2.imshow('1', output)
 
         def slised_window(x_cord, y_cord, radius):
             x0 = int(x_cord - radius)

@@ -7,7 +7,7 @@ from sklearn import model_selection, datasets, linear_model, metrics
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.pipeline import Pipeline
-from Juggler import Plotter, Configurator
+from Juggler import Plotter, Ball_detection, Configurator
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -43,37 +43,21 @@ class Avg_value(): # Moving average value
         return sum(self.array) / len(self.array)
 
 x1, x2, y1, y2, r1, r2 = Avg_value(), Avg_value(), Avg_value(), Avg_value(), Avg_value(), Avg_value()
-
 location_screen = Plotter.Location_screen()
-
-# all cv2 transormations
-def batch_prep(frame, blur_n, ranges, kernel_o, kernel_c, kwargs):
-    res = cv2.GaussianBlur(frame, tuple(blur_n), 0)  # blure
-    res = cv2.cvtColor(res, cv2.COLOR_BGR2HSV)  # to HSV
-    res = cv2.inRange(res, ranges[0], ranges[1])  # Color filter
-    res = cv2.morphologyEx(res, cv2.MORPH_OPEN, kernel_o)  # Open filter
-    res = cv2.morphologyEx(res, cv2.MORPH_CLOSE, kernel_c)  # Close filter
-    circles = cv2.HoughCircles(res, cv2.HOUGH_GRADIENT, 2, **kwargs)
-    return res, circles
-
-def draw_all_circles(frame, circles):
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        for (x, y, r) in circles:
-            cv2.circle(frame, (x, y), r, (0, 255, 0), 4)
-            # cv2.rectangle(frame, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
 
 while True:
     ret1, frame1 = cap1.read()
     ret2, frame2 = cap2.read()
 
     if ret1 and ret2:
-        res1, circles1 = batch_prep(frame1, Configurator.blur_n, color_ranges_1, Configurator.kernel_o, Configurator.kernel_c, Configurator.kwargs)
-        res2, circles2 = batch_prep(frame2, Configurator.blur_n, color_ranges_2, Configurator.kernel_o, Configurator.kernel_c, Configurator.kwargs)
-        draw_all_circles(frame1, circles1)
-        draw_all_circles(frame2, circles2)
+        mid1 = Ball_detection.prepare_frame(frame1, color_ranges_1)
+        mid2 = Ball_detection.prepare_frame(frame2, color_ranges_2)
+        circles1 = Ball_detection.find_circle( mid1 )
+        circles2 = Ball_detection.find_circle( mid2 )
+        Ball_detection.draw_circles(frame1, circles1)
+        Ball_detection.draw_circles(frame2, circles2)
         cv2.imshow('1', np.hstack((frame1, frame2)))
-        cv2.imshow('2', np.hstack((res1, res2)))
+        # cv2.imshow('2', np.hstack((mid1, mid2)))
         if circles1 is not None and circles2 is not None:
             # print([circles1[0][0][1], circles2[0][0][1]])
             data_1 = np.array([circles1[0][0][1], circles2[0][0][1]], dtype=np.float64).reshape(1, -1)
@@ -84,7 +68,7 @@ while True:
             pred_2 = model_2.predict(data_2)
             cord = np.multiply([pred_2[0][0], pred_2[0][1], z_cord], 10)
             # print(cord)
-            mySrc.data_signal.emit(cord[0]+150)
+            mySrc.data_signal.emit(cord[2]+0)
             for_show = location_screen.make_screen(cord, resize=False)
             cv2.imshow('location', for_show)
 

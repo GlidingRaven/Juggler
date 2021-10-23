@@ -5,8 +5,8 @@ file_name = 'cam/0a.avi'
 max_value = 255
 frame_period = 30
 max_value_H = 360//2
-low_H, low_S, low_V = 12, 156, 176
-high_H, high_S, high_V = 24, 255, 255
+low_H, low_S, low_V = 20, 20, 120
+high_H, high_S, high_V = 120, 255, 255
 window_detection_name = 'Object Detection'
 low_H_name, low_S_name, low_V_name = 'L Hue', 'L Sat', 'L Val'
 high_H_name, high_S_name, high_V_name = 'H Hue', 'H Sat', 'H Val'
@@ -54,7 +54,7 @@ def on_high_V_thresh_trackbar(val):
 
 cap = cv2.VideoCapture(file_name)
 cv2.namedWindow(window_detection_name)
-cv2.createTrackbar('FPS', window_detection_name, 30, 100, ChangeFPS)
+cv2.createTrackbar('FPS', window_detection_name, 30, 400, ChangeFPS)
 cv2.createTrackbar(low_H_name, window_detection_name, low_H, max_value_H, on_low_H_thresh_trackbar)
 cv2.createTrackbar(high_H_name, window_detection_name, high_H, max_value_H, on_high_H_thresh_trackbar)
 cv2.createTrackbar(low_S_name, window_detection_name, low_S, max_value, on_low_S_thresh_trackbar)
