@@ -27,6 +27,7 @@ def draw_circles(frame, circles):
         for (x, y, r) in circles[0]:
             cv2.circle(frame, (x, y), r, (0, 255, 0), 4)
 
+
 class Avg_value(): # Moving average value
     def __init__(self, size = 30):
         self.array = [0]
@@ -39,6 +40,7 @@ class Avg_value(): # Moving average value
 
     def get(self):
         return sum(self.array) / len(self.array)
+
 
 class Many_avg_values(): # Moving average for many values, for example: (x,y,z)
     def __init__(self, name_list, size_list):

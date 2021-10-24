@@ -12,10 +12,12 @@ default = {'frame_period': 30,
 
 frame_period = default['frame_period']
 alpha = 0.5 # for filter
+camera_fps = 30 # dont change it for no reason, because speed calculation relies on it
 
 def ChangeFPS(value):
     global frame_period
     if value > 0: frame_period = value
+    if value == 400: frame_period = 2000
 
 def ChangeAlpha(value):
     global alpha

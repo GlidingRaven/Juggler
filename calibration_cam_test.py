@@ -67,9 +67,10 @@ while True:
             data_2 = np.array([circles1[0][0][0], circles1[0][0][1], z_cord], dtype=np.float64).reshape(1, -1)
             pred_2 = model_2.predict(data_2)
             cord = np.multiply([pred_2[0][0], pred_2[0][1], z_cord], 10)
-            # print(cord)
+            cord = np.round(cord).astype(int) # now coorinates in milimeters
+            print(cord)
             mySrc.data_signal.emit(cord[2]+0)
-            for_show = location_screen.make_screen(cord, resize=False)
+            for_show = location_screen.make_screen(cord, history_size = 30, resize=False)
             cv2.imshow('location', for_show)
 
     else:
