@@ -11,14 +11,20 @@ from Juggler import Plotter, Ball_detection, Configurator
 import warnings
 warnings.filterwarnings('ignore')
 
-file_name_1 = 'cam/3a.avi'
-file_name_2 = 'cam/3b.avi'
-color_ranges_1 = (12,83,194),(35,193,255)
-color_ranges_2 = (10,140,143),(26,255,255)
+file_name_1 = 'cam/7a.avi'
+file_name_2 = 'cam/7b.avi'
+model_name = 'data/calibration_models.sav'
+color_ranges_1 = (10,73,230),(31,255,255)
+color_ranges_2 = (14,137,185),(23,255,255)
 cap1 = cv2.VideoCapture(file_name_1)
 cap2 = cv2.VideoCapture(file_name_2)
-model_1 = pickle.load(open('data/calibration_model_1.sav', 'rb'))
-model_2 = pickle.load(open('data/calibration_model_2.sav', 'rb'))
+models = []
+with open(model_name, "rb") as file:
+    while True:
+        try:
+            models.append(pickle.load(file))
+        except EOFError:
+            break
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -42,8 +48,10 @@ class Avg_value(): # Moving average value
     def get(self):
         return sum(self.array) / len(self.array)
 
+last_cord = [0,0,0]
 x1, x2, y1, y2, r1, r2 = Avg_value(), Avg_value(), Avg_value(), Avg_value(), Avg_value(), Avg_value()
 location_screen = Plotter.Location_screen()
+cv2.imshow('location', location_screen.make_screen(last_cord))
 
 while True:
     ret1, frame1 = cap1.read()
@@ -60,17 +68,33 @@ while True:
         # cv2.imshow('2', np.hstack((mid1, mid2)))
         if circles1 is not None and circles2 is not None:
             # print([circles1[0][0][1], circles2[0][0][1]])
-            data_1 = np.array([circles1[0][0][1], circles2[0][0][1]], dtype=np.float64).reshape(1, -1)
-            pred_1 = model_1.predict(data_1)
-            z_cord = pred_1[0][0]
+            # pred1 = my_models[0].predict(full_test_data[['y', 'x2']])
+            # pred2 = my_models[1].predict(full_test_data[['x', 'y2']])
+            # print(pred2)
+            # avg = []
+            # for i in range(len(pred1)):
+            #     avg.append(float(pred1[i] + pred2[i]) / 2)
+            # print(avg)
 
-            data_2 = np.array([circles1[0][0][0], circles1[0][0][1], z_cord], dtype=np.float64).reshape(1, -1)
-            pred_2 = model_2.predict(data_2)
-            cord = np.multiply([pred_2[0][0], pred_2[0][1], z_cord], 10)
+            data_1 = np.array([circles1[0][0][1], circles2[0][0][0]], dtype=np.float64).reshape(1, -1)
+            pred_1 = models[0].predict(data_1)
+            data_2 = np.array([circles1[0][0][0], circles2[0][0][1]], dtype=np.float64).reshape(1, -1)
+            pred_2 = models[1].predict(data_1)
+            print(pred_1[0][0])
+            print(pred_2[0][0])
+            z_cord = float(pred_1[0][0] + pred_2[0][0])/2
+            # print(z_cord)
+
+            data_3 = np.array([circles1[0][0][0], circles2[0][0][0], z_cord], dtype=np.float64).reshape(1, -1)
+            pred_3 = models[2].predict(data_3)
+            cord = np.multiply([pred_3[0][0], pred_3[0][1], z_cord], 10)
             cord = np.round(cord).astype(int) # now coorinates in milimeters
             print(cord)
+            vector = np.subtract(cord, last_cord)
+            last_cord = cord
+            # print(vector)
             mySrc.data_signal.emit(cord[2]+0)
-            for_show = location_screen.make_screen(cord, history_size = 30, resize=False)
+            for_show = location_screen.make_screen(cord, vector, history_size = 30, resize=False)
             cv2.imshow('location', for_show)
 
     else:

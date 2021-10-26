@@ -113,6 +113,7 @@ class Location_screen():
         self.view_side = np.full((400, 100), 0.1)
         self.draw_scale(self.view_side, 50, 0.5)
         self.history = []
+        self.last_cord = [0, 0]
 
     def draw_scale(self, matrix, x_line, color):
         text_scale = 0.4
@@ -150,18 +151,31 @@ class Location_screen():
             cv2.circle(matrix, (hist[0] + 200, hist[1] + 200), size, color)
             # cv2.line(matrix, (50 - line_width, y_cor), (50 + line_width, y_cor), color, size)
 
-    def make_screen(self, cord, history_size = 0, resize=False, size=(1000,800)):
-        # print(cord)
+    def draw_vector(self, matrix, vec, size, color):
+        start = []
+        font_size = 0.5
+        text_line_y_cord = 380
+        start.append(self.last_cord[0] + 200)
+        start.append(self.last_cord[1] + 200)
+        cv2.putText(matrix, str(vec[0]), (200, text_line_y_cord), self.font, font_size, color, 1)  # draw vector values
+        cv2.putText(matrix, str(vec[1]), (280, text_line_y_cord), self.font, font_size, color, 1)
+        vector = np.multiply(vec, 10)
+        cv2.line(matrix, (start[0], start[1]), (start[0] + vector[0], start[1] + vector[1]), color, size)
+
+
+    def make_screen(self, cord, vector = (0,0), history_size = 0, resize=False, size=(1000,800)):
+        self.last_cord = cord
         view_above_now = np.copy(self.view_above)
         view_side_now = np.copy(self.view_side)
-
-        self.draw_cross(view_above_now, cord, 5, 1)
-        self.draw_arrow(view_side_now, cord, 1, 1)
 
         if history_size > 0:
             self.history.append(cord)
             if len(self.history) > history_size: self.history.pop(0)
             self.draw_history(view_above_now, self.history, 1, 0.5)
+
+        self.draw_cross(view_above_now, cord, 5, 1)
+        self.draw_arrow(view_side_now, cord, 1, 1)
+        self.draw_vector(view_above_now, vector, 1, 1)
 
         for_show = np.hstack((view_above_now, view_side_now))
         if resize:
