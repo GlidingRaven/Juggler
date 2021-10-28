@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from Juggler import Plotter, Ball_detection, Configurator
 
-file_name = 'other/cam/ball3_zoom.avi'
+file_name = 'other/cam/1st/ball3_zoom.avi'
 color_ranges = (18,164,176),(26,255,255)
 
 cap = cv2.VideoCapture(file_name)

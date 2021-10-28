@@ -32,7 +32,7 @@ int currentStep4 = 0;
 void setup() {
     stepBlock = HIGH;
     Serial.begin(9600);
-    //Serial.println("<300, 300, 300, 300, 700>");
+    Serial.println("<300, 300, 300, 300, 700>");
     //Serial.println("<1, 2, 3, 4, msec>");
     //Serial.println();
 }
@@ -122,6 +122,7 @@ int deg2step(int deg) {
     }
 
 void bom(int exeTime, int cnt1, int cnt2, int cnt3, int cnt4, long u1, long u2, long u3, long u4) {
+  //Serial.println("bom fun");
           unsigned int cn1 = 0;
           unsigned int cn2 = 0;
           unsigned int cn3 = 0;
@@ -194,44 +195,52 @@ void setLow() {
     dir4 = LOW;
 }
 
-void movee(int exeTime, int cnt1, int cnt2, int cnt3, int cnt4, long u1, long u2, long u3, long u4) {
-    stepBlock = LOW;//////////////delay(2);
-    
-    for (int i=0; i<1; i++) {
-      setHigh();
-      
-      bom(exeTime, cnt1, cnt2, cnt3, cnt4, u1, u2, u3, u4);
-      setLow();
-      bom(exeTime, cnt1, cnt2, cnt3, cnt4, u1, u2, u3, u4);
-     }
-    //delay(2000);
-    //stepBlock = HIGH;
-    }
 void exe(int deg1, int deg2, int deg3, int deg4, float exeTime) {
-
-    int delta1 = deg1 - currentStep1;
-    int delta2 = deg2 - currentStep2;
-    int delta3 = deg3 - currentStep3;
-    int delta4 = deg4 - currentStep4;
     long time1 = 0;
     long time2 = 0;
     long time3 = 0;
     long time4 = 0;
-     
-        int step1 = deg2step(delta1);
-        int step2 = deg2step(delta2);
-        int step3 = deg2step(delta3);
-        int step4 = deg2step(delta4);
-
-        step1!=0 ? time1 = (long)exeTime*1000/step1 :0;
-        step2!=0 ? time2 = (long)exeTime*1000/step2 :0;
-        step3!=0 ? time3 = (long)exeTime*1000/step3 :0;
-        step4!=0 ? time4 = (long)exeTime*1000/step4 :0;
+    currentStep1!=0 ? time1 = abs((long)exeTime*1000/currentStep1) :0;
+    currentStep2!=0 ? time2 = abs((long)exeTime*1000/currentStep2) :0;
+    currentStep3!=0 ? time3 = abs((long)exeTime*1000/currentStep3) :0;
+    currentStep4!=0 ? time4 = abs((long)exeTime*1000/currentStep4) :0;
+    stepBlock = LOW;
+    setLow();
+    Serial.println("goin down");
+    Serial.println(currentStep1);
+    Serial.println(currentStep2);
+    Serial.println(currentStep3);
+    Serial.println(currentStep4);
+//    Serial.println(time1);
+//    Serial.println(time2);
+//    Serial.println(time3);
+//    Serial.println(time4);
+    bom(exeTime, currentStep1, currentStep2, currentStep3, currentStep4, time1, time2, time3, time4); // go to 0's
     
-        st1 = LOW;
-        st2 = LOW;
-        //Serial.println(time3);
-        movee(exeTime, step1, step2, step3, step4, time1, time2, time3, time4);
-        
-    
+    int delta1 = deg2step(deg1);
+    int delta2 = deg2step(deg2);
+    int delta3 = deg2step(deg3);
+    int delta4 = deg2step(deg4);
+    currentStep1 = delta1;
+    currentStep2 = delta2;
+    currentStep3 = delta3;
+    currentStep4 = delta4;
+    delta1!=0 ? time1 = abs((long)exeTime*1000/currentStep1) :0;
+    delta2!=0 ? time2 = abs((long)exeTime*1000/currentStep2) :0;
+    delta3!=0 ? time3 = abs((long)exeTime*1000/currentStep3) :0;
+    delta4!=0 ? time4 = abs((long)exeTime*1000/currentStep4) :0;
+    //st1 = LOW;
+    //st2 = LOW;
+    setHigh();
+    Serial.println("goin up");
+    Serial.println(delta1);
+    Serial.println(delta2);
+    Serial.println(delta3);
+    Serial.println(delta4);
+//    Serial.println(time1);
+//    Serial.println(time2);
+//    Serial.println(time3);
+//    Serial.println(time4);
+    Serial.println("");
+    bom(exeTime, delta1, delta2, delta3, delta4, time1, time2, time3, time4);
 }

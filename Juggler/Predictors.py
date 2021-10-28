@@ -56,28 +56,25 @@ class ActionPredictor(BasePredictor):
         return pred[0]
 
 
-class ZPredictor(BasePredictor):
-    def fit(self, filename):
-        full_path = PATH_TO_DATA + filename
-        data = pd.read_csv(full_path)
-        full_train_data = data.iloc[0:36, :]
-        full_test_data = data.iloc[36:, :]
+class Cord_finder(BasePredictor):
+    def __init__(self, model_name):
+        self.models = []
 
-        train_labels = full_train_data[['z_real']]
-        test_labels = full_test_data[['z_real']]
-        train_data = full_train_data[['y', 'y2']]
-        test_data = full_test_data[['y', 'y2']]
+        with open(model_name, "rb") as file:
+            while True:
+                try:
+                    self.models.append(pickle.load(file))
+                except EOFError:
+                    break
 
-        self.poly = PolynomialFeatures(2)
-        self.scaler = StandardScaler()
-        self.regressor = MultiOutputRegressor(
-            linear_model.SGDRegressor(random_state=0, max_iter=1000, penalty='l1', alpha=1))
+    def predict_z(self, x, y, x2, y2):
+        data_1 = np.array([y, x2], dtype=np.float64).reshape(1, -1)
+        data_2 = np.array([x, y2], dtype=np.float64).reshape(1, -1)
+        pred_1 = self.models[0].predict(data_1)
+        pred_2 = self.models[1].predict(data_2)
+        return float(pred_1[0][0] + pred_2[0][0]) / 2
 
-        self.pipeline = Pipeline(steps=[('polynomial', poly), ('scaling', scaler), ('regression', regressor)])
-        self.pipeline.fit(train_data, train_labels)
-
-
-        pred = self.pipeline.predict(test_data)
-        mae = metrics.mean_absolute_error(test_labels, pred, multioutput='raw_values')
-        print('Model Fitted')
-        print('MAE = ', *mae)
+    def predict_x_y(self, x, x2, z_cord):
+        data_3 = np.array([x, x2, z_cord], dtype=np.float64).reshape(1, -1)
+        pred_3 = self.models[2].predict(data_3)
+        return np.multiply([pred_3[0][0], pred_3[0][1], z_cord], 10) # return result in milimeters
