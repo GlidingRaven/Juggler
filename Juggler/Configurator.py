@@ -2,7 +2,7 @@
 import cv2, time, sys, os
 import numpy as np
 
-options_window = '1'
+options_window = '1opt'
 
 default = {'frame_period': 30,
            'param1': 80,
@@ -13,9 +13,9 @@ default = {'frame_period': 30,
 frame_period = default['frame_period']
 alpha = 0.12 # for filter
 camera_fps = 30 # dont change it for no reason, because speed calculation relies on it
-base = 30
+base = 40
 conf_z_vel = 200
-conf_delay = 100
+conf_delay = 200
 
 def ChangeFPS(value):
     global frame_period
@@ -40,9 +40,9 @@ def ChangeDelay(value):
 
 
 cv2.namedWindow(options_window)
-# cv2.resizeWindow(options_window, 700, 400);
+cv2.resizeWindow(options_window, 600, 300);
 cv2.createTrackbar('FPS', options_window, 30, 400, ChangeFPS)
-cv2.createTrackbar('Alpha %', options_window, 12, 100, ChangeAlpha)
-cv2.createTrackbar('Base %', options_window, 30, 60, ChangeBase)
+# cv2.createTrackbar('Alpha %', options_window, 12, 100, ChangeAlpha)
+cv2.createTrackbar('Base %', options_window, 40, 60, ChangeBase)
 cv2.createTrackbar('Z vel %', options_window, 200, 500, ChangeZVel)
-cv2.createTrackbar('Delay %', options_window, 100, 400, ChangeDelay)
+cv2.createTrackbar('Delay %', options_window, 200, 800, ChangeDelay)

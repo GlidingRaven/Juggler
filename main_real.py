@@ -7,10 +7,12 @@ from sklearn import model_selection, datasets, linear_model, metrics
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.pipeline import Pipeline
-from Juggler import Plotter, Ball_detection, Configurator, Predictors
+from Juggler import Plotter, Ball_detection, Configurator, Predictors, Motor
+from threading import Timer
 import warnings
 warnings.filterwarnings('ignore')
 
+enable_action = True
 file_name_1 = 'cam/8a.avi'
 file_name_2 = 'cam/8b.avi'
 color_ranges_1 = (10,73,230),(31,255,255)
@@ -29,25 +31,15 @@ QApplication.setStyle(QStyleFactory.create('Plastique'))
 myGUI = Plotter.CustomMainWindow(queue_size = 200, y_limit = 400, start_offset = 50, ylabel='z vel')
 mySrc = Plotter.Communicate()
 mySrc.data_signal.connect(myGUI.addData_callbackFunc)
-
-class Avg_value(): # Moving average value
-    def __init__(self, size = 30):
-        self.array = [0]
-        self.size = size
-
-    def add(self, val):
-        if len(self.array) >= self.size:
-            self.size.pop(0)
-        self.array.append(val)
-
-    def get(self):
-        return sum(self.array) / len(self.array)
-
 last_cord = [0,0,0]
 vector_avg = Ball_detection.Many_avg_values(['x_vel', 'y_vel', 'z_vel'], [8, 8, 2])
 x_vel, y_vel = 0, 0
 location_screen = Plotter.Location_screen()
 Trigger = Ball_detection.Triggers()
+if enable_action:
+    Motor = Motor.Motor()
+else:
+    Motor = Motor.Motor(port = 'dummy')
 cv2.imshow('location', location_screen.make_screen(last_cord))
 
 def hit():
@@ -62,14 +54,26 @@ def hit():
     else:
         delay = round(delay)/240 # convert to second from steps
 
-    print(alpha, beta)
+    # print(alpha, beta)
     alpha /= 2
     beta /= 2
-    print(alpha, beta, vel, delay)
+    print(alpha, beta)#, vel, delay)
     if alpha > 5: alpha = 5
-    if alpha < 5: alpha = -5
+    if alpha < -5: alpha = -5
     if beta > 5: beta = 5
-    if beta < 5: beta = -5
+    if beta < -5: beta = -5
+    k11 = 310/100
+    k22 = 375/100
+    # print(Configurator.base, alpha, k11, beta, k22)
+    a1 = Configurator.base + alpha * k11 - beta * k22
+    a2 = Configurator.base + alpha * k11 + beta * k22
+    a3 = Configurator.base - alpha * k11 + beta * k22
+    a4 = Configurator.base - alpha * k11 - beta * k22
+
+    to_send = [a1, a2, a3, a4, Configurator.conf_z_vel]
+    print(to_send)
+    t = Timer( Configurator.conf_delay/1000, Motor.send, to_send )
+    t.start()
     print('\n')
 
 while True:
@@ -134,4 +138,5 @@ while True:
 cap1.release()
 cap2.release()
 cv2.destroyAllWindows()
+Motor.close()
 # sys.exit(app.exec_())

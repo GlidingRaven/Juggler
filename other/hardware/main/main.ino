@@ -228,10 +228,11 @@ void exe(int deg1, int deg2, int deg3, int deg4, float exeTime) {
         step3!=0 ? time3 = (long)exeTime*1000/step3 :0;
         step4!=0 ? time4 = (long)exeTime*1000/step4 :0;
     
-        st1 = LOW;
-        st2 = LOW;
+        //st1 = LOW;
+        //st2 = LOW;
         //Serial.println(time3);
         movee(exeTime, step1, step2, step3, step4, time1, time2, time3, time4);
+        stepBlock = HIGH;
         
     
 }
