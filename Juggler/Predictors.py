@@ -58,9 +58,10 @@ class ActionPredictor(BasePredictor):
 
 class Cord_finder(BasePredictor):
     def __init__(self, model_name):
+        full_path = PATH_TO_DATA + model_name
         self.models = []
 
-        with open(model_name, "rb") as file:
+        with open(full_path, "rb") as file:
             while True:
                 try:
                     self.models.append(pickle.load(file))
@@ -72,7 +73,8 @@ class Cord_finder(BasePredictor):
         data_2 = np.array([x, y2], dtype=np.float64).reshape(1, -1)
         pred_1 = self.models[0].predict(data_1)
         pred_2 = self.models[1].predict(data_2)
-        return float(pred_1[0][0] + pred_2[0][0]) / 2
+        return float(pred_2[0][0])
+        # return float(pred_1[0][0] + pred_2[0][0]) / 2 # best
 
     def predict_x_y(self, x, x2, z_cord):
         data_3 = np.array([x, x2, z_cord], dtype=np.float64).reshape(1, -1)

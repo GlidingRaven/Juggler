@@ -53,3 +53,38 @@ class Many_avg_values(): # Moving average for many values, for example: (x,y,z)
 
     def get(self, name):
         return self.kwargs[name].get()
+
+class Triggers():
+    def __init__(self):
+        self.count_for_wait = 2
+        self.decay_duration = 0
+        self.last_z_vel = 0
+        self.z_vel_threshold = 1  # threshold to activate action
+        self.wait_mode = False
+
+
+    def detect_velocity_decay(self, cord, vector, fun_to_activate):
+        z_vel = vector[2]
+        if not self.wait_mode:
+            if z_vel > 0 and z_vel < self.last_z_vel:
+                self.decay_duration += 1
+            else:
+                self.decay_duration = 0
+
+            if self.decay_duration == self.count_for_wait:
+                self.wait_mode = True
+
+        if self.wait_mode:
+            if z_vel <= self.last_z_vel:
+
+                if z_vel <= self.z_vel_threshold:
+                    self.wait_mode = False
+                    fun_to_activate()
+                else:
+                    pass
+            else:
+                self.wait_mode = False
+                # print('abort')
+                # print(z_vel, self.last_z_vel)
+
+        self.last_z_vel = z_vel

@@ -285,7 +285,7 @@ class Enviroment:
         sigma = 50
         ball_vel = (self.gen_rand_vel(sigma), self.en_rand_vel(sigma))
         alpha, beta, vel, delay = predictor.predict([x, y, z, ball_vel[0], ball_vel[1]])
-        print('Predicted: ',alpha, beta, vel, delay)
+        # print('Predicted: ',alpha, beta, vel, delay)
 
         self.make_simulation(cords, ball_vel, action_params=[(alpha, beta), vel, delay], debug=False)
 
