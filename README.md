@@ -42,18 +42,22 @@ To run the simulation, simply install the libraries from *requirements.txt* and 
 If you want to run a real robot, first connect the two cameras and the stepper motor controller. Then run the following files sequentially:
 1. **find_color_ranges.py** For each camera, find the best values of thresholds at which the ball will be well recognized. Save the output numbers
 ![find_color_ranges.py](files/steps/1.jpg)
-2. **camera_configurator.py** Find the best image processing parameters for stable ball detection
+2. **camera_configurator.py** Optional step since the last update. Find the best image processing parameters for stable ball detection
 ![camera_configurator.py](files/steps/2.jpg)
 3. **make_calibration_dots.py** Move the ball to different coordinates to create a calibration file. After this step, try not to touch the cameras
+![make_calibration_dots.py](files/steps/3.jpg)
 4. **make_calibration_models.py** Just run it once
-5. **robot.py** Run
+5. **main_real.py** Run. If the robot was connected, it will start kicking the ball!
+![make_calibration_dots.py](files/steps/5.jpg)
+
 
 ### Debugging
-*camera_configurator.py* is a powerful tool for debugging the ball detection part
 
-*data_preparation.ipynb* contains details of data processing for action model training
-
-*calibration.ipynb* contains calibration models
+* *data_preparation.ipynb* Contains details of data processing for action model training
+* *make_calibration_model* Processing for calibration models
+* *motor_tester.py* Simple tester with 5 textbox: 4 angles + delay time
+* *motor_configurator.py* The program calculates the turning angles for each motor based on the two required angles 
+* *save_video.py* Simply records video from one camera for later debugging without actually connecting the camera. The video is saved in the /cam folder
 
 
 [Technical details](https://docs.google.com/document/d/1umx8ZsqzESH3lx-r5ZVmqLn8rJtWfMUKcmMkzg1vBDY/edit?usp=sharing)
