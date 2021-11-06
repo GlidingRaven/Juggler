@@ -7,7 +7,6 @@ This repository includes an accurate physical simulation and a complete solution
 
 [Video of Simulation, CV and real platform](https://www.youtube.com/watch?v=z67J0S6FeP0)
  
-[Simulation in Colab (no GUI)](https://colab.research.google.com/drive/1CBMK3y_V7m3XDEyIOxfX7YjOGRlooMEp?usp=sharing)
 
 ## Abstract
 It would be wise to divide the entire gaming experience into separate cases. Each case starts with a ball falling from some point and some speed x, y. The robot tries to kick the ball high enough and into the center of the platform. 
@@ -41,8 +40,10 @@ Later steps described in data_preparation.ipynb
 To run the simulation, simply install the libraries from *requirements.txt* and run **main.py** in your IDE.
 
 If you want to run a real robot, first connect the two cameras and the stepper motor controller. Then run the following files sequentially:
-1. **find_color_ranges.py** For each camera, find the best values of thresholds at which the ball will be well recognized. Save the numbers
+1. **find_color_ranges.py** For each camera, find the best values of thresholds at which the ball will be well recognized. Save the output numbers
+![find_color_ranges.py](files/steps/1.jpg)
 2. **camera_configurator.py** Find the best image processing parameters for stable ball detection
+![camera_configurator.py](files/steps/2.jpg)
 3. **make_calibration_dots.py** Move the ball to different coordinates to create a calibration file. After this step, try not to touch the cameras
 4. **make_calibration_models.py** Just run it once
 5. **robot.py** Run
