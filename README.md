@@ -2,10 +2,14 @@
 
 ![Real robot and simulation](files/ro.jpg)
 
-The ball begins to fall from a given point and the robot tries to bounce it. The kicking platform can rotate on two axes and move vertically.
-This repository includes an accurate physical simulation and a complete solution based on ML approach
+The robot tries to kick the ball up. The kicking platform can rotate on two axes and move vertically.
+This repository includes an accurate physical simulation and a complete solution based on ML approach.
 
-[Video of Simulation, CV and real platform](https://www.youtube.com/watch?v=z67J0S6FeP0)
+To apply the resulting model to the real platform, a program was made to determine the coordinates of the ball based on the video stream from two cameras.
+
+[Video of Simulation](https://youtu.be/yQC6OHycJfw)
+
+[Bigger video about CV and real platform](https://www.youtube.com/watch?v=z67J0S6FeP0)
  
 
 ## Abstract
@@ -53,11 +57,14 @@ If you want to run a real robot, first connect the two cameras and the stepper m
 
 ### Debugging
 
-* *data_preparation.ipynb* Contains details of data processing for action model training
-* *make_calibration_model* Processing for calibration models
-* *motor_tester.py* Simple tester with 5 textbox: 4 angles + delay time
-* *motor_configurator.py* The program calculates the turning angles for each motor based on the two required angles 
-* *save_video.py* Simply records video from one camera for later debugging without actually connecting the camera. The video is saved in the /cam folder
+* **data_preparation.ipynb** Contains details of data processing for action model training
+* **make_calibration_model** Processing for calibration models
+* **motor_tester.py** Simple motor tester with 5 textbox: 4 angles + delay time
+* **motor_configurator.py** The program calculates the turning angles for each motor based on the two required angles. And sends to the motor controller
+* **save_video.py** Simply records video from one camera for later debugging without actually connecting the camera. The video is saved in the /cam folder
+
+## Conclusion
+Although the algorithm works brilliantly well in the simulation, it is bad on a real device. Softening the movement of stepper motors and making parts on metalworking machines is required
 
 
 [Technical details](https://docs.google.com/document/d/1umx8ZsqzESH3lx-r5ZVmqLn8rJtWfMUKcmMkzg1vBDY/edit?usp=sharing)
